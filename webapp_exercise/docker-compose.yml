@@ -1,0 +1,35 @@
+version: '3.8'
+services:
+  db:
+    image: akiunlocks/postgres-takehome:latest  
+    environment: 
+      &db_vars
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+      POSTGRES_DB: ${POSTGRES_DB}
+    secrets:
+      - db_password    
+    ports: ['5432:5432']
+    healthcheck:
+         test: "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"
+         interval: 10s
+         timeout: 5s
+         retries: 5
+  app:
+    build: .
+    depends_on:
+       db:
+         condition: service_healthy
+    environment:
+      <<: *db_vars
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+    ports: ['5000:5000']
+    secrets:
+       - db_password
+
+secrets:
+   db_password:
+       file: db_password.txt
+
+# Note: We can use external secret if we use docker swarm and for DB we can add volume
